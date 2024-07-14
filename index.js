@@ -1,81 +1,91 @@
-window.addEventListener('load', () => {
-	const form = document.querySelector("#new-task");
-	const input = document.querySelector("#input");
-	const list_el = document.querySelector("#tasks");
+const addTaskBtn = document.getElementById('addTask');
+const btnText = addTaskBtn.innerText;
+const tasknameTextField = document.getElementById('taskname');
+const recordDisplay = document.getElementById('records');
+let taskArray = [];
+let edit_id = null;
+let objStr = localStorage.getItem('tasks');
 
-	form.addEventListener('submit', (e) => {
-		e.preventDefault();
-
-		const task = input.value;
-
-		const task_el = document.createElement('div');
-		task_el.classList.add('task');
-
-		const task_content_el = document.createElement('div');
-		task_content_el.classList.add('content');
-
-		task_el.appendChild(task_content_el);
-
-		const task_input_el = document.createElement('input');
-		task_input_el.classList.add('text');
-		task_input_el.type = 'text';
-		task_input_el.value = task;
-		
-		task_content_el.appendChild(task_input_el);
-
-		const task_actions_el = document.createElement('div');
-		task_actions_el.classList.add('actions');
-		
-		const task_edit_el = document.createElement('button');
-		task_edit_el.classList.add('edit');
-		task_edit_el.innerText = 'Edit';
-
-		const task_delete_el = document.createElement('button');
-		task_delete_el.classList.add('delete');
-		task_delete_el.innerText = 'Delete';
-
-		task_actions_el.appendChild(task_edit_el);
-		task_actions_el.appendChild(task_delete_el);
-
-		task_el.appendChild(task_actions_el);
-
-		list_el.appendChild(task_el);
-
-		input.value = '';
-
-		task_edit_el.addEventListener('click', (e) => {
-			if (task_edit_el.innerText.toLowerCase() == "edit") {
-				task_edit_el.innerText = "Save";
-				
-				task_input_el.focus();
-			} else {
-				task_edit_el.innerText = "Edit";
-				
-			}
-			
-		});
-
-		task_delete_el.addEventListener('click', (e) => {
-			list_el.removeChild(task_el);
-		});
-	});
-});
-
-// SEARCH
-
-const ss=()=>{
-
-	var searcValue=document.getElementById("searchS").value;
-
-	
-
-    tasksLen = document.getElementById("tasks").children.length;
-
-
-	for(i=0;i<tasksLen;i++){
-
-		if(searcValue!=document.getElementsByClassName("text")[i].value){
-			document.getElementById("tasks").children[i].style.display="none"
-		}
-	}
+if (objStr != null) {
+    taskArray = JSON.parse(objStr);
 }
+
+displayInfo();
+
+addTaskBtn.onclick = () => {
+    const name = tasknameTextField.value;
+    if (edit_id != null) {
+        taskArray.splice(edit_id, 1, { 'name': name, 'completed': taskArray[edit_id].completed });
+        edit_id = null;
+    } else {
+        taskArray.push({ 'name': name, 'completed': false });
+    }
+    saveInfo(taskArray);
+    tasknameTextField.value = '';
+    addTaskBtn.innerText = btnText;
+};
+
+function saveInfo(taskArray) {
+    let str = JSON.stringify(taskArray);
+    localStorage.setItem('tasks', str);
+    displayInfo();
+}
+
+function displayInfo() {
+    let statement = '';
+    taskArray.forEach((task, i) => {
+        statement += `<tr>
+            <th scope="row">
+                <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleComplete(${i})">
+                ${i + 1}
+            </th>
+            <td class="${task.completed ? 'completed' : ''}">${task.name}</td>
+            <td>
+                <button class="btn btn-info text-white mx-2" onclick="editInfo(${i})"><i class="fas fa-pen-to-square"></i></button>
+                <button class="btn btn-danger text-white" onclick="deleteInfo(${i})"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    });
+    recordDisplay.innerHTML = statement;
+}
+
+function editInfo(id) {
+    edit_id = id;
+    tasknameTextField.value = taskArray[id].name;
+    addTaskBtn.innerText = 'Save Changes';
+}
+
+function deleteInfo(id) {
+    taskArray.splice(id, 1);
+    saveInfo(taskArray);
+}
+
+function toggleComplete(id) {
+    taskArray[id].completed = !taskArray[id].completed;
+    saveInfo(taskArray);
+}
+
+const searchInputField = document.querySelector('#search');
+searchInputField.addEventListener('input', function (e) {
+    const searchStr = e.target.value.toLowerCase();
+    let statement = '';
+    taskArray.forEach((task, i) => {
+        if (task.name.toLowerCase().includes(searchStr)) {
+            statement += `<tr>
+                <th scope="row">
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleComplete(${i})">
+                    ${i + 1}
+                </th>
+                <td class="${task.completed ? 'completed' : ''}">${task.name}</td>
+                <td>
+                    <button class="btn btn-info text-white mx-2" onclick="editInfo(${i})"><i class="fas fa-pen-to-square"></i></button>
+                    <button class="btn btn-danger text-white" onclick="deleteInfo(${i})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }
+    });
+    if (statement === '') {
+        statement = '<tr><td colspan="3" class="text-center">No records found</td></tr>';
+    }
+    recordDisplay.innerHTML = statement;
+});
